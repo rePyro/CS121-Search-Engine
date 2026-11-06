@@ -1,27 +1,18 @@
 from bs4 import BeautifulSoup
-import re
+from collections import Counter
 
-TOKEN_RE = re.compile(r"[a-z0-9]+")
+def extract_word_frequency(content: str) -> Counter[str]:
+    """
+    Turn a string of HTML into BeautifulSoup, then get the text, and then return a Counter of text frequency.
+    """
+    soup: BeautifulSoup = BeautifulSoup(content, 'html.parser')
+    tokens: list[str]   = soup.get_text(separator=" ").split()
+    words: Counter[str] = Counter(tokens)
+    
+    return words
 
-# take in a full HTML document and return the number of unique words in the document
-
-def get_text_in_page(soup: BeautifulSoup) -> list[str]:
-    # delete any script, style, and noscript tags from the parsing
-    for tag in soup(["script", "style", "noscript"]):
-        tag.decompose()
-
-    # apply TOKEN_RE word definition to text extracted by soup and return the processed text
-    return TOKEN_RE.findall(soup.get_text(separator=" ").lower())
-
-def get_unique_words_in_page(soup: BeautifulSoup) -> set[str]:
-    return set(get_text_in_page(soup))
-
-def helper_function() -> None:
-	"""
-	docstring
-	"""
-
-    soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
-    text: list[str] = get_text_in_page(soup)
-
-	raise NotImplementedError("Implement helper_function")
+def get_unique_words(content: str) -> set[str]:
+    """
+    Given an unprocessed string of HTML, extract words from it and return a set of distinct words.
+    """
+    return set(extract_word_frequency(content))

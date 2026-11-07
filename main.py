@@ -13,7 +13,7 @@ def index(filepath: str):
   url = file_json["url"]
   content = file_json["content"]
   encoding = file_json["encoding"]
-  # helpers.count_unique_words(content)
+  helpers.count_unique_words(content)
 
 def main():
   for dirpath, _, filenames in os.walk("developer"):

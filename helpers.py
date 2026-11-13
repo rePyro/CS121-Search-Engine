@@ -20,6 +20,6 @@ def get_unique_words(content: str) -> set[str]:
     """
     return set(extract_word_frequency(content))
 
-def get_file_size_kb(file: Path) -> float:
+def get_file_size_kb(file: Path | str) -> float:
     """Get size in kb"""
     return os.path.getsize(file) / 1000

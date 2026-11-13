@@ -24,7 +24,7 @@ def main():
         json.dump(INDEX, f)
     print(INDEXED_COUNT)
     print(len(INDEX))
-    print(helpers.get_file_size("index.txt"))
+    print(helpers.get_file_size_kb("index.txt"))
 
 
 if __name__ == "__main__":

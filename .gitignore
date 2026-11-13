@@ -1,3 +1,6 @@
 developer.zip
 /developer
+developer/
 /index
+index.txt
+__pycache__/

@@ -34,3 +34,6 @@ def get_file_size_kb(file: Path | str) -> float:
     Get size in kb
     """
     return os.path.getsize(file) / 1000
+
+def clear_terminal():
+  os.system('cls' if os.name == 'nt' else 'clear')

@@ -2,6 +2,7 @@ import helpers
 import index_access
 
 import math
+import time
 
 # Rename index_access to index_API
 
@@ -23,7 +24,7 @@ def tf_idf(tf: int, df: int, N: int) -> float:
 def search(query: str, k: int = 5) -> list[SearchResult]:
     """Returns the top k search results and handles boolean AND search logic"""
     # Use set to remove duplicates
-    search_terms: set[str] = set(helpers.tokenize(query))
+    search_terms: set[str] = list(set(helpers.tokenize(query)))
     if not search_terms:
         return []
 
@@ -71,14 +72,22 @@ def prompt_loop():
         except EOFError:
             break
 
+        start_time = time.perf_counter()
         results: list[SearchResult] = search(query, k = 5)
         for i, result in enumerate(results):
             # Ex: 1. https://example.com
             print(f"{i+1}. {result.url}")
+
+        end_time = time.perf_counter()
+        execution_time_ms = (end_time - start_time) * 1000
+        print(f"Execution time: {execution_time_ms:.6f} ms")
         
         input()
         helpers.clear_terminal()
 
 
 if __name__ == "__main__":
+    print("Loading index...")
+    index_access.load_index()
+    helpers.clear_terminal()
     prompt_loop()

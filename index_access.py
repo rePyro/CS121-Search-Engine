@@ -6,7 +6,7 @@ _posting_list_collection: dict[str, list[list[int]]] = None
 # dictionary of document ID, document URL
 _doc_dict: dict[int, str] = {}
 
-def _load() -> None:
+def load_index() -> None:
     """
     If the index and document dictionary haven't been loaded yet, load them.
     """
@@ -27,8 +27,6 @@ def get_postings(term: str) -> list[list[int]]:
     Returns [] if the term isn't in the index
     Note: extra EC fields will be added later; use p[0] and p[1] for now
     """
-    _load() # load postings and documents, if not done already
-
     # return the term's posting list; if not found, return empty list
     return _posting_list_collection.get(term, [])
 
@@ -36,8 +34,6 @@ def get_df(term: str) -> int:
     """
     Number of documents containing the term, 0 if absent
     """
-    _load() # load postings and documents, if not done already
-
     # return the length of the term's posting list; default empty list
     return len(_posting_list_collection.get(term, []))
 
@@ -45,8 +41,6 @@ def num_docs() -> int:
     """
     Total number of indexed documents (N)
     """
-    _load() # load postings and documents, if not done already
-
     # return the length of the document dictionary
     return len(_doc_dict)
 
@@ -54,8 +48,6 @@ def get_url(doc_id: int) -> str:
     """
     URL for a doc_id
     """
-    _load() # load postings and documents, if not done already
-
     # return the URL in the value section of the document dictionary
     return _doc_dict[doc_id]
 

@@ -30,7 +30,7 @@ def extract_word_frequency(content: str) -> Counter[str]:
     """
     Turn a string of HTML into BeautifulSoup, then get the text, and then return a Counter of text frequency
     """
-    soup: BeautifulSoup = BeautifulSoup(content, 'html.parser')
+    soup: BeautifulSoup = BeautifulSoup(content, 'lxml')
 
     for tag in soup(["script", "style", "noscript", "template", "svg"]):
         tag.decompose() # destroy content in the above tags

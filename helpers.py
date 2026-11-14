@@ -24,7 +24,6 @@ def tokenize(raw_text: str) -> list[str]:
     """
     words: list[str]  = _TOKEN_RE.findall(raw_text.lower())
     tokens: list[str] = [_stem(word) for word in words]
-
     return tokens
 
 def extract_word_frequency(content: str) -> Counter[str]:
@@ -53,3 +52,6 @@ def get_file_size_kb(file: Path | str) -> float:
     Get size in kb
     """
     return os.path.getsize(file) / 1000
+
+def clear_terminal():
+  os.system('cls' if os.name == 'nt' else 'clear')

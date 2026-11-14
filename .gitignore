@@ -4,3 +4,4 @@ developer/
 /index
 index.txt
 __pycache__/
+*.json

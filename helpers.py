@@ -12,7 +12,6 @@ def tokenize(text: str) -> list[str]:
     """
     pass
 
-
 def extract_word_frequency(content: str) -> Counter[str]:
     """
     Turn a string of HTML into BeautifulSoup, then get the text, and then return a Counter of text frequency

@@ -4,14 +4,14 @@ import json
 
 INDEXED_COUNT = 0
 INDEX = {}
-DOC_MAP = {}
+DOC_DICT = {}
 
 def index(filepath: str):
     global INDEXED_COUNT
     INDEXED_COUNT += 1
     with open(filepath, "r") as f:
         file_json = json.load(f)
-    DOC_MAP[INDEXED_COUNT] = file_json["url"]
+    DOC_DICT[INDEXED_COUNT] = file_json["url"]
     content = file_json["content"]
     for word, tf in helpers.extract_word_frequency(content).items():
         INDEX.setdefault(word, []).append([INDEXED_COUNT, tf])
@@ -23,8 +23,8 @@ def main():
             index(os.path.join(dirpath, filename))
     with open("index.json", "w") as f:
         json.dump(INDEX, f)
-    with open("doc_map.json", "w", encoding="utf-8") as f:
-        json.dump(DOC_MAP, f)
+    with open("doc_dict.json", "w") as f:
+        json.dump(DOC_DICT, f)
     print("docs:", INDEXED_COUNT)
     print("unique terms:", len(INDEX))
     print("index KB:", helpers.get_file_size_kb("index.json"))

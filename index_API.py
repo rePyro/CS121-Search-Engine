@@ -1,5 +1,7 @@
 import json
 
+# TODO: replace the load_index functionality with reading from disk (instead of reading from RAM)
+
 # dictionary of word, word's posting list. Posting is a list of ints.
 _posting_list_collection: dict[str, list[list[int]]] = None
 

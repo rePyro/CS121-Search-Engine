@@ -1,10 +1,8 @@
 import helpers
-import index_access
+import index_API
 
 import math
 import time
-
-# Rename index_access to index_API
 
 class SearchResult:
     url: str
@@ -28,8 +26,8 @@ def search(query: str, k: int = 5) -> list[SearchResult]:
     if not search_terms:
         return []
 
-    N = index_access.num_docs()
-    postings_container = {search_term: index_access.get_postings(search_term) for search_term in search_terms}
+    N = index_API.num_docs()
+    postings_container = {search_term: index_API.get_postings(search_term) for search_term in search_terms}
 
     # Since "AND" logic is used for all the terms, an empty set means the intersection is the null set
     if (any(len(p) == 0 for p in postings_container.values())):
@@ -57,7 +55,7 @@ def search(query: str, k: int = 5) -> list[SearchResult]:
     top = top[:k]
     return [
         SearchResult(
-            url=index_access.get_url(doc_id),
+            url=index_API.get_url(doc_id),
             score=score
         ) for doc_id, score in top
     ]
@@ -88,6 +86,6 @@ def prompt_loop():
 
 if __name__ == "__main__":
     print("Loading index...")
-    index_access.load_index()
+    index_API.load_index()
     helpers.clear_terminal()
     prompt_loop()

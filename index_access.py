@@ -4,7 +4,7 @@ import json
 _posting_list_collection: dict[str, list[list[int]]] = None
 
 # dictionary of document ID, document URL
-_doc_dict: dict[int, str] = None
+_doc_dict: dict[int, str] = {}
 
 def _load() -> None:
     """

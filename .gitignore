@@ -5,3 +5,7 @@ developer/
 index.txt
 __pycache__/
 *.json
+bin/
+Include/
+lib/
+pyvenv.cfg

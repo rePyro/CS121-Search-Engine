@@ -36,7 +36,7 @@ class Posting:
         self.tf_anchor   = tf_anchor
         self.positions   = positions or []
 
-    def calculateTF(self) -> float:
+    def _calculateTF(self) -> float:
         """
         Calculate term frequency based on the given weights
         """
@@ -46,7 +46,7 @@ class Posting:
         return 1 + math.log10(tf_eff)
 
     @staticmethod
-    def calculateIDF(df: int, N: int) -> float:
+    def _calculateIDF(df: int, N: int) -> float:
         """
         Inverse document frequency: log10(N / df)
         df: number of documents containing the term
@@ -60,7 +60,7 @@ class Posting:
         """
         tf-idf score of this posting's term in this posting's document
         """
-        return self.calculateTF() * Posting.calculateIDF(df, N)
+        return self._calculateTF() * Posting._calculateIDF(df, N)
 
 
 def load_index() -> None:

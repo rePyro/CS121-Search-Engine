@@ -15,9 +15,10 @@ def index(filepath: str) -> None:
     with open(filepath, "r", encoding="utf-8") as f:
         file_json = json.load(f)
 
-    url, _ = urldefrag(file_json["url"]) # defrag the URL
+    # defrag the URL
+    url, _ = urldefrag(file_json["url"]) 
 
-    # if URL was already seen, increment SEEN_URLS and exit
+    # if URL was already seen, increment SKIPPED_DUPES and exit
     if url in SEEN_URLS:  
         SKIPPED_DUPES += 1
         return

@@ -10,6 +10,11 @@ _posting_list_collection: dict[str, list[list]] = None
 # dictionary of document ID, document URL
 _doc_dict: dict[int, str] = {}
 
+# Weights
+TITLE_WEIGHT = 5.0
+HEADING_WEIGHT = 3.0
+EMPHASIS_WEIGHT = 1.0
+
 class Posting:
     """
     Data about a word's term frequency, as well as the position(s) it was found in the document
@@ -31,9 +36,31 @@ class Posting:
         self.tf_anchor   = tf_anchor
         self.positions   = positions or []
 
-    def calculateScore(self) -> float:
-        tf_eff = self.tf + 5*self.tf_title + 3*self.tf_heading + 1*self.tf_emphasis
+    def calculateTF(self) -> float:
+        """
+        Calculate term frequency based on the given weights
+        """
+        tf_eff = self.tf + (TITLE_WEIGHT*self.tf_title) + (HEADING_WEIGHT*self.tf_heading) + (EMPHASIS_WEIGHT*self.tf_emphasis)
+        if tf_eff <= 0:
+            return 0.0 # avoid log10(0)
         return 1 + math.log10(tf_eff)
+
+    @staticmethod
+    def calculateIDF(df: int, N: int) -> float:
+        """
+        Inverse document frequency: log10(N / df)
+        df: number of documents containing the term
+        N: total number of documents
+        """
+        if df <= 0:
+            return 0.0 # term not in index
+        return math.log10(N / df)
+
+    def calculateScore(self, df: int, N: int) -> float:
+        """
+        tf-idf score of this posting's term in this posting's document
+        """
+        return self.calculateTF() * Posting.calculateIDF(df, N)
 
 
 def load_index() -> None:

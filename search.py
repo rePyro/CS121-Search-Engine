@@ -1,7 +1,6 @@
 import helpers
 import index_API
 
-import math
 import time
 
 class SearchResult:
@@ -11,12 +10,6 @@ class SearchResult:
     def __init__(self, url: str, score: float):
         self.url = url
         self.score = score
-
-
-def tf_idf(tf: int, df: int, N: int) -> float:
-    """Calculate the tf_idf, which is 'term frequency inverse document frequency'.
-       Equal to tf * log(N / df) """
-    return tf * math.log10(N / df)
 
 
 def search(query: str, k: int = 5) -> list[SearchResult]:
@@ -36,19 +29,22 @@ def search(query: str, k: int = 5) -> list[SearchResult]:
     ### Handle 'AND' intersections below ###
     # Sort it to start with the smallest set to keep the intersection as small as it will be
     search_terms.sort(key=lambda t: len(postings_container[t]))
-    intersection = set(p[0] for p in postings_container[search_terms[0]])
-    if len(search_terms) > 1:
-        for t in search_terms[1:]:
-            # p[0] is doc_id    
-            intersection &= set(p[0] for p in postings_container[t])
+    intersection = {p.doc_id for p in postings_container[search_terms[0]]}
+    for t in search_terms[1:]:
+        intersection &= {p.doc_id for p in postings_container[t]}
 
+    # Get the sum of the scores for each term in the search
     scores = {doc_id: 0.0 for doc_id in intersection}
     for t, postings in postings_container.items():
-        idf = math.log10(N / len(postings))
+        df = index_API.get_df(t)
         for p in postings:
-            # If the doc_id is one of the ones that is in the intersection (from the AND join)
-            if p[0] in intersection:
-                scores[p[0]] += p[1] * idf
+            # If the doc_id is one of the ones that is in the intersection (from the 'AND join')
+            if p.doc_id in intersection:
+                scores[p.doc_id] += p.calculateScore(df, N)
+
+    # Normalize by document length so long pages don't win just by repeating terms
+    for doc_id in scores:
+        scores[doc_id] /= index_API.get_norm(doc_id)
 
     #                                              entry[1] is the score
     top = sorted(scores.items(), key=lambda entry: entry[1], reverse=True)

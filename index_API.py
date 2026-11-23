@@ -1,4 +1,5 @@
 import json
+import math
 from helpers import tokenize
 
 # TODO: replace the load_index functionality with reading from disk (instead of reading from RAM)
@@ -8,7 +9,6 @@ _posting_list_collection: dict[str, list[list]] = None
 
 # dictionary of document ID, document URL
 _doc_dict: dict[int, str] = {}
-
 
 class Posting:
     """
@@ -31,6 +31,9 @@ class Posting:
         self.tf_anchor   = tf_anchor
         self.positions   = positions or []
 
+    def calculateScore(self) -> float:
+        tf_eff = self.tf + 5*self.tf_title + 3*self.tf_heading + 1*self.tf_emphasis
+        return 1 + math.log10(tf_eff)
 
 
 def load_index() -> None:

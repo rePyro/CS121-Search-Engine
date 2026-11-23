@@ -5,8 +5,8 @@ import os
 import re
 from nltk.stem.snowball import SnowballStemmer
 
-_stemmer_cache = {} # cache of stemmer results, avoiding rerunning Snowball on already-stemmed words
-_stemmer = SnowballStemmer("english") # stemmer object, set to English
+_stemmer_cache = {} # cache of stemmer results, avoiding rerunning Porter2 on already-stemmed words
+_stemmer = SnowballStemmer("english") # stemmer object, set to English (Porter2)
 _TOKEN_RE = re.compile(r"[a-z0-9]+")  # regex for one or more alphanumeric (lowercase)
 
 def _stem(word: str) -> str:
@@ -19,7 +19,7 @@ def _stem(word: str) -> str:
 
 def tokenize(raw_text: str) -> list[str]:
     """
-    Tokenize the text, lowercasing, spliting alphanumerically, and Porter-stemming
+    Tokenize the text, lowercasing, spliting alphanumerically, and Porter2-stemming
     Returns tokens in order, duplicates kept
     """
     words: list[str]  = _TOKEN_RE.findall(raw_text.lower())
@@ -32,7 +32,7 @@ def extract_word_frequency(content: str) -> Counter[str]:
     """
     soup: BeautifulSoup = BeautifulSoup(content, 'lxml')
 
-    for tag in soup(["script", "style", "noscript", "template", "svg"]):
+    for tag in soup(["script", "style", "noscript", "template", "svg", "nav", "footer"]):
         tag.decompose() # destroy content in the above tags
     
     raw_text: str       = soup.get_text(separator=" ")

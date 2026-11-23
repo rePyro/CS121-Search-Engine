@@ -2,9 +2,11 @@ import helpers
 import os
 import json
 from urllib.parse import urldefrag
+import time
 
 DUMP_EVERY = 10000  # every X documents parsed, dump the INDEX
 LAST_DUMP_COUNT = 0 # counts how many documents parsed since last dump
+PARTIAL_FILES = []  # lists each partial file name before merge for debug purposes
 
 DOC_ID_COUNT = 0       # counts how many documents were parsed for ID purposes
 SKIPPED_DUPE_COUNT = 0 # counts how many documents were already in SEEN_URLS 
@@ -29,9 +31,10 @@ def index(filepath: str) -> None:
     # attempt to extract word frequencies from file_json
     freqs, title, heading, emphasis = helpers.extract_word_frequency(file_json["content"])
 
-    # after extract_word_frequency succeeds, increment DOC_ID_COUNT and register to DOC_DICT
+    # after extract_word_frequency succeeds, increment DOC_ID_COUNT and register to DOC_DICT and SEEN_URLS
     DOC_ID_COUNT += 1 
-    DOC_DICT[DOC_ID_COUNT] = file_json["url"]
+    DOC_DICT[DOC_ID_COUNT] = file_json[url]
+    SEEN_URLS.add(url)
 
     # for every word-freqency pair, append it to the POSTING_LIST
     for word, tf in freqs.items():
@@ -43,22 +46,40 @@ def index(filepath: str) -> None:
 
 
 def main():
+    start = time.time() # debug timer
+
+    # walk through every directory found in the "developer" directory
     for dirpath, dirnames, filenames in os.walk("developer"):
-        dirnames.sort()
-        for filename in sorted(filenames):
+        # sort any sub-directories and files for index order consistency
+        dirnames.sort() 
+        filenames.sort()
+
+        # for every file, create its full Path and attempt to index it
+        for filename in filenames:
             path = os.path.join(dirpath, filename)
             try:
                 index(path)
             except Exception as e:
-                print("skipped", path, type(e).__name__, e)
+                print("ERROR indexing file: ", path, type(e).__name__, e)
+
+    # TODO: implement write to disk
     with open("index.json", "w") as f:
         json.dump(POSTING_LIST, f)
+
+    # dump DOC_DICT to doc_dict.json
     with open("doc_dict.json", "w") as f:
         json.dump(DOC_DICT, f)
+
+    # debug print statements
+    print("Indexing has completed! yippee! here's the debug statements")
     print("docs:", DOC_ID_COUNT)
-    print("unique terms:", len(POSTING_LIST))
-    print("index KB:", helpers.get_file_size_kb("index.json"))
+    print("partial files:", len(PARTIAL_FILES))
+    total_kb = sum(helpers.get_file_size_kb(p) for p in PARTIAL_FILES)
+    print("partials total KB:", total_kb)
+    # print("unique terms:", len(POSTING_LIST))
+    # print("index KB:", helpers.get_file_size_kb("index.json"))
     print("fragment duplicates skipped:", SKIPPED_DUPE_COUNT)
+    print("elapsed seconds:", int(time.time() - start))
 
 if __name__ == "__main__":
   main()

@@ -1,14 +1,16 @@
-from flask import Flask, render_template_string, request
+from flask import Flask, jsonify, render_template_string, request
+import asyncio
 import time
 import index_API
 import search
+import AI
 
 app = Flask(__name__)
 
 # Number of results shown for the query
 DEFAULT_K = 10
 
-# Jinja page
+# Uses Jinja
 PAGE = """
 <!doctype html>
 <html lang="en">
@@ -42,21 +44,51 @@ PAGE = """
       <div class="result">
         <a href="{{ r.url }}" target="_blank" rel="noopener">{{ r.url }}</a>
         <div class="score">score {{ '%.3f'|format(r.score) }}</div>
+        <div class="summary" data-url="{{ r.url }}">Generating summary... Please be patient; this usually takes ~20 seconds.</div>
       </div>
     {% else %}
       <p>No pages contain all of those words.</p>
     {% endfor %}
   {% endif %}
+
+  <script>
+    window.onload = () => {
+      const summary_elements = document.querySelectorAll('.summary');
+      if (summary_elements.length === 0) return;
+      fetch("/summaries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          results_urls: Array.from(summary_elements, e => e.dataset.url)
+        })
+      })
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then(summaries => {
+        for (let i = 0; i < summaries.length; i++) {
+          const summary = summaries[i];
+          summary_elements[i].textContent = summaries[i];
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        summary_elements.forEach(ele => { ele.textContent = "Could not load AI summary." });
+      });
+    };
+  </script>
 </body>
 </html>
 """
+
 
 @app.route("/")
 def home():
     """Show the search box and the results if a search query was given"""
     query = request.args.get("q", "").strip()
-    results = []
     elapsed_ms = 0.0
+    results=[]
 
     if query:
         start = time.perf_counter()
@@ -64,6 +96,20 @@ def home():
         elapsed_ms = (time.perf_counter() - start) * 1000
 
     return render_template_string(PAGE, query=query, results=results, elapsed_ms=elapsed_ms)
+
+
+@app.post("/summaries")
+def get_summaries():
+    """Generate and return summaries for each of the results. To be called client-side to improve loading speed"""
+    # The URLs to generate summaries for should be passed in
+    # These are the URLs of the results returned by the search
+    data = request.get_json()
+    urls = data["results_urls"]
+    if not urls:
+        return jsonify({"Error": "Missing 'results_urls' from request body"}), 400
+
+    summaries = asyncio.run(AI.get_AI_summaries(page_urls=[url for url in urls]))
+    return jsonify(summaries)
 
 
 if __name__ == "__main__":

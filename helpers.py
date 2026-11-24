@@ -26,19 +26,19 @@ def tokenize(raw_text: str) -> list[str]:
     tokens: list[str] = [_stem(word) for word in words]
     return tokens
 
+def clean_soup(soup: BeautifulSoup) -> BeautifulSoup:
+    for tag in soup(["script", "style", "noscript", "template", "svg", "nav", "footer"]):
+        tag.decompose() # destroy content in the above tags
+    return soup
+
 def extract_word_frequency(content: str) -> Counter[str]:
     """
     Turn a string of HTML into BeautifulSoup, then get the text, and then return a Counter of text frequency
     """
-    soup: BeautifulSoup = BeautifulSoup(content, 'lxml')
-
-    for tag in soup(["script", "style", "noscript", "template", "svg", "nav", "footer"]):
-        tag.decompose() # destroy content in the above tags
-    
+    soup: BeautifulSoup = clean_soup(BeautifulSoup(content, 'lxml'))
     raw_text: str       = soup.get_text(separator=" ")
     tokens: list[str]   = tokenize(raw_text)
     words: Counter[str] = Counter(tokens)
-    
     return words
 
 # def get_unique_words(content: str) -> set[str]:

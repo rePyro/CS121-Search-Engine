@@ -1,3 +1,6 @@
+# Contains "OPENAI_API_KEY" environment variable
+.env
+
 developer.zip
 /developer
 developer/

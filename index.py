@@ -10,7 +10,7 @@ import heapq
 # merge-specific globals
 FINAL_INDEX_PATH = "index_final.txt"
 LEXICON_PATH     = "lexicon.json"
-META_PATH        = "meta.json"
+DOC_COUNT_PATH   = "doc_count.json"
 
 # dump-specific globals
 DUMP_EVERY = 100    # every X documents parsed, dump the INDEX
@@ -189,7 +189,7 @@ def merge(partial_paths: list[str]) -> None:
     with open("doc_dict.json", "r", encoding="utf-8") as file:
         n = len(json.load(file))
     # save N to meta
-    with open(META_PATH, "w", encoding="utf-8") as file:
+    with open(DOC_COUNT_PATH, "w", encoding="utf-8") as file:
         json.dump({"N": n}, file)
 
 
@@ -232,7 +232,7 @@ def main():
     print("partial files:", len(PARTIAL_PATHS))
     total_kb = sum(helpers.get_file_size_kb(p) for p in PARTIAL_PATHS)
     print("partials total KB:", total_kb)
-    with open(META_PATH, "r", encoding="utf-8") as file:
+    with open(DOC_COUNT_PATH, "r", encoding="utf-8") as file:
         print("unique terms:", json.load(file)["N"])
     print("index KB:", helpers.get_file_size_kb(FINAL_INDEX_PATH))
     print("fragment duplicates skipped:", SKIPPED_DUPE_COUNT)

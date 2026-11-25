@@ -3,11 +3,21 @@ import os
 import json
 from urllib.parse import urldefrag
 import time
+import contextlib
+from typing import TextIO, BinaryIO
+import heapq
 
-DUMP_EVERY = 10000  # every X documents parsed, dump the INDEX
+# merge-specific globals
+FINAL_INDEX_PATH = "index_final.txt"
+LEXICON_PATH     = "lexicon.json"
+META_PATH        = "meta.json"
+
+# dump-specific globals
+DUMP_EVERY = 100    # every X documents parsed, dump the INDEX
 LAST_DUMP_COUNT = 0 # counts how many documents parsed since last dump
-PARTIAL_FILES = []  # lists each partial file name before merge for debug purposes
+PARTIAL_PATHS = []  # lists each partial file name before merge for debug purposes
 
+# general globals
 DOC_ID_COUNT = 0       # counts how many documents were parsed for ID purposes
 SKIPPED_DUPE_COUNT = 0 # counts how many documents were already in SEEN_URLS 
 SEEN_URLS = set()      # tracks all seen documents (defragged first)
@@ -54,7 +64,7 @@ def dump() -> None:
     # if "partials" directory doesn't exist, make one.
     os.makedirs("partials", exist_ok=True)
     # new file's name is "partials/partial_#.txt". where # is the number, starting from 0. 
-    new_file = f"partials/partial_{len(PARTIAL_FILES)}.txt"
+    new_file = f"partials/partial_{len(PARTIAL_PATHS)}.txt"
 
     # writing into newly-created new_file...
     with open(new_file, "w", encoding="utf-8", newline="\n") as f:
@@ -66,10 +76,120 @@ def dump() -> None:
             # Writes to file, example format: "bacon\t[[1,11,1,0,0,0,[]],[2,222,0,22,2,0,[]]]\n"
             f.write(f"{token}\t{postings_json}\n")
 
-    # track new_file in PARTIAL_FILES, clear the POSTING_LIST, and reset LAST_DUMP_COUNT counter
-    PARTIAL_FILES.append(new_file)
+    # track new_file in PARTIAL_PATHS, clear the POSTING_LIST, and reset LAST_DUMP_COUNT counter
+    PARTIAL_PATHS.append(new_file)
     POSTING_LIST.clear()
     LAST_DUMP_COUNT = 0
+
+
+
+def _extract_line_data(line: str) -> list[str]:
+    return line.rstrip("\n").split("\t", 1)
+
+def merge():
+    """
+    Combines all partial files into a final index, creating a lexicon (index-of-the-index) for seek(). 
+    * 1: Opens every file in PARTIAL_PATHS simultaneously as streams to read.
+    * 2: Collects every first line into a min-heap, keyed by term with file_num as tiebreaker.
+    * 3: Repeat until the min-heap is empty (meaning, every stream is exhausted) to create the final index:
+        * 3a: Pop the smallest alphanumeric term on the min-heap.
+        * 3b: Combines the lines that contain the term, from partial_0 to partial_n to maintain DOC_ID order.
+        * 3c: Writes the combined term line to the final index.
+        * 3d: Record the position of the term into the lexicon.
+        * 3e: Refill min-heap with the used files' next lines.
+    * 4: Save the lexicon and document count.
+    """
+    ## Step 1 ##
+    # Note: ExitStack() manages the context managers of a variable number of files, closing them in LIFO/stack order.
+    with contextlib.ExitStack() as stack:
+        # list of opened files
+        files: list[TextIO] = []
+
+        # list of paths -> list of opened files set to "r"
+        for path in PARTIAL_PATHS:
+            # enter_context() returns open()'s __enter__ and adds its __exit__ to stack's own __exit__.
+            files.append(
+                stack.enter_context(
+                    open(path, "r", encoding="utf-8")
+                )
+            )
+
+        # create the final index file and lexicon
+        final_index: BinaryIO = stack.enter_context(open(FINAL_INDEX_PATH, "wb"))
+        offset: int = 0 # bytes written so far
+        lexicon: dict[str, tuple[int, int]] = {} # term : (offset, df)
+
+        ## Step 2 ##
+        heap: list[tuple[str, int, str]] = [] # formatted as (term, file_num, postings)
+
+        for file_num in range(len(files)):
+            file = files[file_num]
+            line = file.readline()
+            if (line == ""): continue
+
+            # extract term and posting list from the line
+            term, postings_text = _extract_line_data(line)
+
+            # push (add to end and bubble up) to heap
+            heapq.heappush(heap, (term, file_num, postings_text))
+
+        ## Step 3 ##
+        while (heap != []):
+            ## Step 3a: pop smallest term from heap ##
+            smallest_term: tuple[str, int, str]       = heapq.heappop(heap)
+            smallest_term_list: list[tuple[int, str]] = [(smallest_term[1], smallest_term[2])]
+
+            ## Step 3b: combine the lines that contain the term ##
+            # collect data from other partials that match the smallest_term
+            while (heap != []) and (heap[0][0] == smallest_term[0]):
+                smallest_term_list.append((heapq.heappop(heap))[1:])
+            
+            # de-JSON each postings_text and combine into a final posting list
+            current_term = smallest_term[0]
+            combined: list[list] = []
+            for _, postings_text in smallest_term_list:
+                # turn JSON-formatted postings_text into Pythonic postings
+                postings: list[list] = json.loads(postings_text)
+
+                # append each list in postings' list[list] to combined's list[list]
+                combined.extend(postings)
+
+            # record the document frequency of this posting list, for the lexicon
+            df = len(combined)
+
+            # re-JSON the Pythonic postings
+            postings_json: str = json.dumps(combined, separators=(",", ":"))
+            line_bytes: bytes = (f"{current_term}\t{postings_json}\n").encode("utf-8")
+
+            ## Step 3c: write postings into the final_index ##
+            final_index.write(line_bytes)
+            
+            ## Step 3d: create lexicon entry ##
+            lexicon[current_term] = (offset, df) # term : (offset, df)
+            # increment byte offset for the next term loop
+            offset += len(line_bytes)
+
+            ## Step 3e: refill the heap with the used files' next lines ##
+            for file_num, _ in smallest_term_list:
+                # get the next line from the used files
+                line = files[file_num].readline()
+
+                # if the file is not exhausted yet, add the next term to heap.
+                if line:  
+                    term, postings_text = _extract_line_data(line)
+                    heapq.heappush(heap, (term, file_num, postings_text))
+            
+    ## Step 4 ##
+    # save lexicon
+    with open(LEXICON_PATH, "w", encoding="utf-8") as f:
+        json.dump(lexicon, f)
+
+    # fetch N from doc_dict.json
+    with open("doc_dict.json", "r", encoding="utf-8") as f:
+        n = len(json.load(f))
+    # save N to meta
+    with open(META_PATH, "w", encoding="utf-8") as f:
+        json.dump({"N": n}, f)
 
 
 
@@ -105,8 +225,8 @@ def main():
     # debug print statements
     print("Indexing has completed! yippee! here's the debug statements")
     print("docs:", DOC_ID_COUNT)
-    print("partial files:", len(PARTIAL_FILES))
-    total_kb = sum(helpers.get_file_size_kb(p) for p in PARTIAL_FILES)
+    print("partial files:", len(PARTIAL_PATHS))
+    total_kb = sum(helpers.get_file_size_kb(p) for p in PARTIAL_PATHS)
     print("partials total KB:", total_kb)
     # print("unique terms:", len(POSTING_LIST))
     # print("index KB:", helpers.get_file_size_kb("index.json"))

@@ -15,7 +15,7 @@ META_PATH        = "meta.json"
 # dump-specific globals
 DUMP_EVERY = 100    # every X documents parsed, dump the INDEX
 LAST_DUMP_COUNT = 0 # counts how many documents parsed since last dump
-PARTIAL_PATHS = []  # lists each partial file name before merge for debug purposes
+PARTIAL_PATHS = []  # lists each partial file name before merge
 
 # general globals
 DOC_ID_COUNT = 0       # counts how many documents were parsed for ID purposes
@@ -67,16 +67,17 @@ def dump() -> None:
     new_file = f"partials/partial_{len(PARTIAL_PATHS)}.txt"
 
     # writing into newly-created new_file...
-    with open(new_file, "w", encoding="utf-8", newline="\n") as f:
+    with open(new_file, "w", encoding="utf-8", newline="\n") as file:
         # sort POSTING_LIST and extract each token-postings pair
         for token, postings in sorted(POSTING_LIST.items()):
 
             # json.dumps() converts list of postings into a JSON-formatted string, with spaceless separators
             postings_json = json.dumps(postings, separators=(",", ":"))
             # Writes to file, example format: "bacon\t[[1,11,1,0,0,0,[]],[2,222,0,22,2,0,[]]]\n"
-            f.write(f"{token}\t{postings_json}\n")
+            file.write(f"{token}\t{postings_json}\n")
 
     # track new_file in PARTIAL_PATHS, clear the POSTING_LIST, and reset LAST_DUMP_COUNT counter
+    print(f"dumped {new_file} after {DUMP_EVERY} documents indexed; total of {SKIPPED_DUPE_COUNT} skipped docs so far") # NOTE: debug statement
     PARTIAL_PATHS.append(new_file)
     POSTING_LIST.clear()
     LAST_DUMP_COUNT = 0
@@ -86,7 +87,7 @@ def dump() -> None:
 def _extract_line_data(line: str) -> list[str]:
     return line.rstrip("\n").split("\t", 1)
 
-def merge():
+def merge(partial_paths: list[str]) -> None:
     """
     Combines all partial files into a final index, creating a lexicon (index-of-the-index) for seek(). 
     * 1: Opens every file in PARTIAL_PATHS simultaneously as streams to read.
@@ -106,7 +107,7 @@ def merge():
         files: list[TextIO] = []
 
         # list of paths -> list of opened files set to "r"
-        for path in PARTIAL_PATHS:
+        for path in partial_paths:
             # enter_context() returns open()'s __enter__ and adds its __exit__ to stack's own __exit__.
             files.append(
                 stack.enter_context(
@@ -181,23 +182,23 @@ def merge():
             
     ## Step 4 ##
     # save lexicon
-    with open(LEXICON_PATH, "w", encoding="utf-8") as f:
-        json.dump(lexicon, f)
+    with open(LEXICON_PATH, "w", encoding="utf-8") as file:
+        json.dump(lexicon, file)
 
     # fetch N from doc_dict.json
-    with open("doc_dict.json", "r", encoding="utf-8") as f:
-        n = len(json.load(f))
+    with open("doc_dict.json", "r", encoding="utf-8") as file:
+        n = len(json.load(file))
     # save N to meta
-    with open(META_PATH, "w", encoding="utf-8") as f:
-        json.dump({"N": n}, f)
+    with open(META_PATH, "w", encoding="utf-8") as file:
+        json.dump({"N": n}, file)
 
 
 
 def main():
-    start = time.time() # debug timer
+    start = time.time() # NOTE: debug timer
 
     # walk through every directory found in the "developer" directory
-    for dirpath, dirnames, filenames in os.walk("developer_mini"): # TODO: Debug developer_mini for now. CHANGE LATER!
+    for dirpath, dirnames, filenames in os.walk("developer_mini"): # NOTE: Debug developer_mini for now. CHANGE LATER!
         # sort any sub-directories and files for index order consistency
         dirnames.sort() 
         filenames.sort()
@@ -219,17 +220,21 @@ def main():
         dump()
 
     # dump DOC_DICT to doc_dict.json
-    with open("doc_dict.json", "w", encoding="utf-8") as f:
-        json.dump(DOC_DICT, f)
+    with open("doc_dict.json", "w", encoding="utf-8") as file:
+        json.dump(DOC_DICT, file)
 
-    # debug print statements
+    # create final index, alongside lexicon and document count, N, in META_PATH
+    merge(PARTIAL_PATHS)
+
+    # NOTE: debug print statements
     print("Indexing has completed! yippee! here's the debug statements")
     print("docs:", DOC_ID_COUNT)
     print("partial files:", len(PARTIAL_PATHS))
     total_kb = sum(helpers.get_file_size_kb(p) for p in PARTIAL_PATHS)
     print("partials total KB:", total_kb)
-    # print("unique terms:", len(POSTING_LIST))
-    # print("index KB:", helpers.get_file_size_kb("index.json"))
+    with open(META_PATH, "r", encoding="utf-8") as file:
+        print("unique terms:", json.load(file)["N"])
+    print("index KB:", helpers.get_file_size_kb(FINAL_INDEX_PATH))
     print("fragment duplicates skipped:", SKIPPED_DUPE_COUNT)
     print("elapsed seconds:", int(time.time() - start))
 

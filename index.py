@@ -233,7 +233,7 @@ def main():
     total_kb = sum(helpers.get_file_size_kb(p) for p in PARTIAL_PATHS)
     print("partials total KB:", total_kb)
     with open(DOC_COUNT_PATH, "r", encoding="utf-8") as file:
-        print("unique terms:", json.load(file)["N"])
+        print("document count:", json.load(file)["N"])
     print("index KB:", helpers.get_file_size_kb(FINAL_INDEX_PATH))
     print("fragment duplicates skipped:", SKIPPED_DUPE_COUNT)
     print("elapsed seconds:", int(time.time() - start))

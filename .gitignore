@@ -10,3 +10,5 @@ bin/
 Include/
 lib/
 pyvenv.cfg
+.venv
+partials/

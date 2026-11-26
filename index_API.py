@@ -1,14 +1,16 @@
 import json
 import math
 from helpers import tokenize
+from typing import BinaryIO
 
-# TODO: replace the load_index functionality with reading from disk (instead of reading from RAM)
-
-# dictionary of word, word's posting list.
-_posting_list_collection: dict[str, list[list]] = None
-
-# dictionary of document ID, document URL
-_doc_dict: dict[int, str] = {}
+# INDEX_PATH's opened stream in binary mode
+INDEX_FILE: BinaryIO = None
+# dictionary of term : (offset, document frequency)
+LEXICON: dict[str, tuple[int, int]] = None
+# dictionary of document ID : document URL
+DOC_DICT: dict[int, str] = {}
+# int of document count
+DOC_COUNT: int = 0
 
 # Weights
 TITLE_WEIGHT = 5.0
@@ -65,47 +67,78 @@ class Posting:
 
 def load_index() -> None:
     """
-    If the index and document dictionary haven't been loaded yet, load them
+    If the lexicon, doc. dictionary, doc. count, and index stream haven't been loaded yet, load them
     """
-    global _posting_list_collection, _doc_dict
+    global INDEX_FILE, LEXICON, DOC_DICT, DOC_COUNT
 
-    if _posting_list_collection is None:
-        with open("index.json") as f:
-            _posting_list_collection = json.load(f) # TODO: replace with disk reading
+    if LEXICON is None:
+        with open("lexicon.json", "r", encoding="utf-8") as file:
+            LEXICON = json.load(file)
 
-        with open("doc_dict.json") as f:
-            file = json.load(f)
-            for doc_id, doc_url in file.items():
-                _doc_dict[int(doc_id)] = doc_url
+        # json.load() loads as dict[str, str]; need to convert to dict[int, str]
+        with open("doc_dict.json", "r", encoding="utf-8") as file:
+            dd_strings = json.load(file)
+            for doc_id, doc_url in dd_strings.items():
+                DOC_DICT[int(doc_id)] = doc_url
+
+        with open("doc_count.json", "r", encoding="utf-8") as file:
+            DOC_COUNT = json.load(file)["N"]
+
+        INDEX_FILE = open("index_final.txt", "rb")
+
 
 
 
 def get_postings(term: str, with_positions: bool = False) -> list[Posting]:
     """
-    Postings for an already-stemmed term, as Posting objects sorted ascending by doc_id
+    Postings for an already-stemmed term, as Posting objects sorted by doc_id, ascending
     Returns [] if the term isn't in the index
     Note: with_positions currently ignored; positions are [] until implemented
     """
-    # return the term's posting list; if not found, return empty list
-    return [Posting(*row) for row in _posting_list_collection.get(term, [])] # TODO: refactor
+    # (offset, df)
+    lexicon_term: tuple[int, int] | None = LEXICON.get(term)
+
+    if lexicon_term == None:
+        return []
+
+    # move stream to correct offset and pull the line data up until "\n" byte
+    offset = lexicon_term[0]
+    INDEX_FILE.seek(offset)
+    line: str = INDEX_FILE.readline().decode("utf-8").rstrip("\n")
+
+    # split line into term, postings_text
+    _, postings_text = line.split("\t", 1)
+    # convert postings_text from str to list[list[data]]
+    raw_postings = json.loads(postings_text)
+
+    # convert raw postings (list[list[data]]) to class postings (list[Posting])
+    class_postings = []
+    for raw_posting in raw_postings:
+        class_posting = Posting(*raw_posting)
+        class_postings.append(class_posting)
+
+    return class_postings
 
 
 
-def get_df(term: str) -> int: # TODO: compute on index creation instead of on search.
+def get_df(term: str) -> int:
     """
     Number of documents containing the term, 0 if absent
     """
-    # return the length of the term's posting list; default empty list
-    return len(_posting_list_collection.get(term, []))
+    lexicon_term: tuple[int, int] | None = LEXICON.get(term)
+    
+    if lexicon_term is None:
+        return 0
+
+    return lexicon_term[1]
 
 
 
-def num_docs() -> int: # TODO: compute on index creation instead of on search.
+def num_docs() -> int:
     """
     Total number of indexed documents (N)
     """
-    # return the length of the document dictionary
-    return len(_doc_dict)
+    return DOC_COUNT
 
 
 
@@ -114,7 +147,7 @@ def get_url(doc_id: int) -> str:
     URL for a doc_id
     """
     # return the URL in the value section of the document dictionary
-    return _doc_dict[doc_id]
+    return DOC_DICT[doc_id]
 
 
 

@@ -4,6 +4,8 @@
 developer.zip
 /developer
 developer/
+developer_mini/
+developer_tiny/
 /index
 index.txt
 __pycache__/
@@ -12,3 +14,6 @@ bin/
 Include/
 lib/
 pyvenv.cfg
+.venv
+partials/
+index_final.txt

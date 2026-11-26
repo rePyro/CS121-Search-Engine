@@ -1,4 +1,4 @@
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from collections import Counter
 from pathlib import Path
 import os
@@ -26,20 +26,56 @@ def tokenize(raw_text: str) -> list[str]:
     tokens: list[str] = [_stem(word) for word in words]
     return tokens
 
+<<<<<<< HEAD
 def clean_soup(soup: BeautifulSoup) -> BeautifulSoup:
     for tag in soup(["script", "style", "noscript", "template", "svg", "nav", "footer"]):
         tag.decompose() # destroy content in the above tags
     return soup
 
 def extract_word_frequency(content: str) -> Counter[str]:
+=======
+def _count_tags(soup: BeautifulSoup, names: list[str]) -> Counter[str]:
+>>>>>>> index
     """
-    Turn a string of HTML into BeautifulSoup, then get the text, and then return a Counter of text frequency
+    Find all HTML sections with the tag(s) in names, extract the text out of each section, 
+    join each extracted text together, tokenize, and return a Counter of those tokens
     """
+    tags: list[Tag]   = soup.find_all(names)
+    texts: list[str]  = [tag.get_text(" ") for tag in tags]
+    combined: str     = " ".join(texts)
+    tokens: list[str] = tokenize(combined)
+
+    return Counter(tokens)
+
+def extract_word_frequency(content: str) -> tuple[Counter[str], Counter[str], Counter[str], Counter[str]]:
+    """
+    Turn a string of HTML into BeautifulSoup, strips extraneous tags, and extracts term frequencies.
+    Returns a tuple of four Counters: tf, tf_title, tf_heading, and tf_emphasis.
+    """
+<<<<<<< HEAD
     soup: BeautifulSoup = clean_soup(BeautifulSoup(content, 'lxml'))
     raw_text: str       = soup.get_text(separator=" ")
     tokens: list[str]   = tokenize(raw_text)
     words: Counter[str] = Counter(tokens)
     return words
+=======
+    soup: BeautifulSoup = BeautifulSoup(content, 'lxml')
+
+    for tag in soup(["script", "style", "noscript", "template", "svg", "nav", "footer"]):
+        tag.decompose() # destroy content in the above tags
+
+    # extract all text from soup, tokenize, and convert into a Counter (automatically counts input keys into value)
+    raw_text: str           = soup.get_text(separator=" ")
+    tokens: list[str]       = tokenize(raw_text)
+    all_words: Counter[str] = Counter(tokens)
+
+    # extract specific tags from soup for weighting purposes
+    title: Counter[str]    = _count_tags(soup, ["title"])
+    heading: Counter[str]  = _count_tags(soup, ["h1", "h2", "h3"])
+    emphasis: Counter[str] = _count_tags(soup, ["h4", "h5", "h6", "strong", "b"])
+    
+    return (all_words, title, heading, emphasis)
+>>>>>>> index
 
 # def get_unique_words(content: str) -> set[str]:
 #     """

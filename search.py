@@ -15,7 +15,7 @@ class SearchResult:
 def search(query: str, k: int = 5) -> list[SearchResult]:
     """Returns the top k search results and handles boolean AND search logic"""
     # Use set to remove duplicates
-    search_terms: set[str] = list(set(helpers.tokenize(query)))
+    search_terms: list[str] = list(set(helpers.tokenize(query)))
     if not search_terms:
         return []
 

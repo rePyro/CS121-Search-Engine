@@ -2,6 +2,7 @@ developer.zip
 /developer
 developer/
 developer_mini/
+developer_tiny/
 /index
 index.txt
 __pycache__/

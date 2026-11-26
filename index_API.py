@@ -4,9 +4,9 @@ from helpers import tokenize
 from typing import BinaryIO
 
 # INDEX_PATH's opened stream in binary mode
-INDEX_FILE: BinaryIO = None
+INDEX_FILE: BinaryIO = None # type: ignore
 # dictionary of term : (offset, document frequency)
-LEXICON: dict[str, tuple[int, int]] = None
+LEXICON: dict[str, tuple[int, int]] = None # type: ignore
 # dictionary of document ID : document URL
 DOC_DICT: dict[int, str] = {}
 # int of document count

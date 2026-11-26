@@ -26,16 +26,12 @@ def tokenize(raw_text: str) -> list[str]:
     tokens: list[str] = [_stem(word) for word in words]
     return tokens
 
-<<<<<<< HEAD
 def clean_soup(soup: BeautifulSoup) -> BeautifulSoup:
     for tag in soup(["script", "style", "noscript", "template", "svg", "nav", "footer"]):
         tag.decompose() # destroy content in the above tags
     return soup
 
-def extract_word_frequency(content: str) -> Counter[str]:
-=======
 def _count_tags(soup: BeautifulSoup, names: list[str]) -> Counter[str]:
->>>>>>> index
     """
     Find all HTML sections with the tag(s) in names, extract the text out of each section, 
     join each extracted text together, tokenize, and return a Counter of those tokens
@@ -52,13 +48,6 @@ def extract_word_frequency(content: str) -> tuple[Counter[str], Counter[str], Co
     Turn a string of HTML into BeautifulSoup, strips extraneous tags, and extracts term frequencies.
     Returns a tuple of four Counters: tf, tf_title, tf_heading, and tf_emphasis.
     """
-<<<<<<< HEAD
-    soup: BeautifulSoup = clean_soup(BeautifulSoup(content, 'lxml'))
-    raw_text: str       = soup.get_text(separator=" ")
-    tokens: list[str]   = tokenize(raw_text)
-    words: Counter[str] = Counter(tokens)
-    return words
-=======
     soup: BeautifulSoup = BeautifulSoup(content, 'lxml')
 
     for tag in soup(["script", "style", "noscript", "template", "svg", "nav", "footer"]):
@@ -75,7 +64,6 @@ def extract_word_frequency(content: str) -> tuple[Counter[str], Counter[str], Co
     emphasis: Counter[str] = _count_tags(soup, ["h4", "h5", "h6", "strong", "b"])
     
     return (all_words, title, heading, emphasis)
->>>>>>> index
 
 # def get_unique_words(content: str) -> set[str]:
 #     """

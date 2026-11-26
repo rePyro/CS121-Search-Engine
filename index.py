@@ -8,7 +8,7 @@ from typing import TextIO, BinaryIO
 import heapq
 
 # merge-specific globals
-FINAL_INDEX_PATH = "index_final.txt"
+FINAL_INDEX_PATH = "index_final.json"
 LEXICON_PATH     = "lexicon.json"
 DOC_COUNT_PATH   = "doc_count.json"
 
@@ -63,8 +63,8 @@ def dump() -> None:
 
     # if "partials" directory doesn't exist, make one.
     os.makedirs("partials", exist_ok=True)
-    # new file's name is "partials/partial_#.txt". where # is the number, starting from 0. 
-    new_file = f"partials/partial_{len(PARTIAL_PATHS)}.txt"
+    # new file's name is "partials/partial_#.json". where # is the number, starting from 0. 
+    new_file = f"partials/partial_{len(PARTIAL_PATHS)}.json"
 
     # writing into newly-created new_file...
     with open(new_file, "w", encoding="utf-8", newline="\n") as file:

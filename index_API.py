@@ -84,7 +84,7 @@ def load_index() -> None:
         with open("doc_count.json", "r", encoding="utf-8") as file:
             DOC_COUNT = json.load(file)["N"]
 
-        INDEX_FILE = open("index_final.json", "rb")
+        INDEX_FILE = open("index_final.txt", "rb")
 
 
 

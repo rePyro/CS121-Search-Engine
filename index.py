@@ -13,7 +13,7 @@ LEXICON_PATH     = "lexicon.json"
 DOC_COUNT_PATH   = "doc_count.json"
 
 # dump-specific globals
-DUMP_EVERY = 100    # every X documents parsed, dump the INDEX
+DUMP_EVERY = 10000  # every X documents parsed, dump the INDEX    NOTE: should be 10000 on non-debug runs
 LAST_DUMP_COUNT = 0 # counts how many documents parsed since last dump
 PARTIAL_PATHS = []  # lists each partial file name before merge
 
@@ -77,7 +77,7 @@ def dump() -> None:
             file.write(f"{token}\t{postings_json}\n")
 
     # track new_file in PARTIAL_PATHS, clear the POSTING_LIST, and reset LAST_DUMP_COUNT counter
-    print(f"dumped {new_file} after {DUMP_EVERY} documents indexed; total of {SKIPPED_DUPE_COUNT} skipped docs so far") # NOTE: debug statement
+    # print(f"dumped {new_file} after {DUMP_EVERY} documents indexed; total of {SKIPPED_DUPE_COUNT} skipped docs so far") # NOTE: debug statement
     PARTIAL_PATHS.append(new_file)
     POSTING_LIST.clear()
     LAST_DUMP_COUNT = 0
@@ -195,10 +195,10 @@ def merge(partial_paths: list[str]) -> None:
 
 
 def main():
-    start = time.time() # NOTE: debug timer
+    # start = time.time() # NOTE: debug timer
 
     # walk through every directory found in the "developer" directory
-    for dirpath, dirnames, filenames in os.walk("developer_mini"): # NOTE: Debug developer_mini for now. CHANGE LATER!
+    for dirpath, dirnames, filenames in os.walk("developer"): # NOTE: should be developer on non-debug runs
         # sort any sub-directories and files for index order consistency
         dirnames.sort() 
         filenames.sort()
@@ -227,18 +227,18 @@ def main():
     merge(PARTIAL_PATHS)
 
     # NOTE: debug print statements
-    print("Indexing has completed! yippee! here's the debug statements")
-    print("docs:", DOC_ID_COUNT)
-    print("partial files:", len(PARTIAL_PATHS))
-    total_kb = sum(helpers.get_file_size_kb(p) for p in PARTIAL_PATHS)
-    print("partials total KB:", total_kb)
-    with open(DOC_COUNT_PATH, "r", encoding="utf-8") as file:
-        print("document count:", json.load(file)["N"])
-    with open(LEXICON_PATH, "r", encoding="utf-8") as file:
-            print("unique terms:", len(json.load(file)))
-    print("index KB:", helpers.get_file_size_kb(FINAL_INDEX_PATH))
-    print("fragment duplicates skipped:", SKIPPED_DUPE_COUNT)
-    print("elapsed seconds:", int(time.time() - start))
+    # print("Indexing has completed! yippee! here's the debug statements")
+    # print("docs:", DOC_ID_COUNT)
+    # print("partial files:", len(PARTIAL_PATHS))
+    # total_kb = sum(helpers.get_file_size_kb(p) for p in PARTIAL_PATHS)
+    # print("partials total KB:", total_kb)
+    # with open(DOC_COUNT_PATH, "r", encoding="utf-8") as file:
+    #     print("document count:", json.load(file)["N"])
+    # with open(LEXICON_PATH, "r", encoding="utf-8") as file:
+    #         print("unique terms:", len(json.load(file)))
+    # print("index KB:", helpers.get_file_size_kb(FINAL_INDEX_PATH))
+    # print("fragment duplicates skipped:", SKIPPED_DUPE_COUNT)
+    # print("elapsed seconds:", int(time.time() - start))
 
 if __name__ == "__main__":
   main()
